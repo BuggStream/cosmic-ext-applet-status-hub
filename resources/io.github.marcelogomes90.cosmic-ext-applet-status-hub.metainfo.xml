@@ -356,6 +356,15 @@
     <keyword xml:lang="zh-CN">面板</keyword>
   </keywords>
   <releases>
+    <release type="stable" version="1.5.12" date="2026-09-22">
+      <description>
+        <p>This patch quiets the system log and finishes the popup header's buttons.</p>
+        <ul>
+          <li>Leaves the system log alone during ordinary use. Every icon lookup, click and menu change was written to the journal, which buried anything else being debugged there; the tray's own comings and goings are still reported, and the rest is available on request.</li>
+          <li>Marks the Save button in settings with a check beside its label, so it matches the buttons that do the same job elsewhere in COSMIC.</li>
+        </ul>
+      </description>
+    </release>
     <release type="stable" version="1.5.11" date="2026-09-18">
       <description>
         <p>This patch lines up the settings entry that appears when no app is in the tray.</p>
