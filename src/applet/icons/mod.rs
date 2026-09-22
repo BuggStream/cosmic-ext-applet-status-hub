@@ -106,7 +106,7 @@ impl IconCache {
                             Some(build(&options, &item.id, draw_size, theme))
                         };
                         if let Some(built) = built {
-                            tracing::info!(
+                            tracing::debug!(
                                 item = %item.id,
                                 ?kind,
                                 size,

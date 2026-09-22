@@ -822,7 +822,7 @@ impl StatusHub {
                 )
             }
             WaylandUpdate::ActivationToken { token, exec } => {
-                tracing::info!(request = %exec, token = token.is_some(), "activation token");
+                tracing::debug!(request = %exec, token = token.is_some(), "activation token");
                 match self.pending_tokens.remove(&exec) {
                     Some(action) => self.complete_token_action(action, token),
                     None => Task::none(),
@@ -1291,7 +1291,7 @@ impl cosmic::Application for StatusHub {
     fn init(core: Core, tray: Self::Flags) -> (Self, Task<Message>) {
         let snapshot = tray.snapshot();
         let wing = detect_wing(&core.applet.panel_type.to_string());
-        tracing::info!(?wing, "panel placement");
+        tracing::debug!(?wing, "panel placement");
         let pin_store = pins::PinStore::open(APP_ID);
         let pins = pin_store.load();
         let appearance_store = appearance::AppearanceStore::open(APP_ID);
@@ -1363,7 +1363,7 @@ impl cosmic::Application for StatusHub {
             Message::SurfaceClosed(id) => self.on_surface_closed(id),
 
             Message::Activate(address) => {
-                tracing::info!(item = %address, "primary click");
+                tracing::debug!(item = %address, "primary click");
                 self.request_token(PendingTokenAction::Activate(address))
             }
 

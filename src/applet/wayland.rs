@@ -220,7 +220,7 @@ impl AppData {
             return;
         };
 
-        tracing::info!(window = %identifier, "raising the window the tray item stands for");
+        tracing::debug!(window = %identifier, "raising the window the tray item stands for");
         manager.manager.activate(&handle, &seat);
     }
 
@@ -381,7 +381,7 @@ fn run(
         next_pending: 0,
     };
 
-    tracing::info!(
+    tracing::debug!(
         activation = app_data.activation_state.is_some(),
         toplevels = app_data.toplevel_info.is_some(),
         manager = app_data.toplevel_manager.is_some(),
@@ -396,7 +396,7 @@ fn run(
             if let calloop::Error::IoError(ref io) = why
                 && io.kind() == std::io::ErrorKind::BrokenPipe
             {
-                tracing::info!("the connection to the panel ended");
+                tracing::debug!("the connection to the panel ended");
             } else {
                 tracing::error!(?why, "the privileged Wayland connection failed");
             }

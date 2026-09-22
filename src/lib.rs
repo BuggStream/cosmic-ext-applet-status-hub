@@ -52,7 +52,7 @@ pub fn drop_unusable_privileged_socket() {
             .is_ok_and(|target| target.to_string_lossy().starts_with("socket:"))
     });
     if usable {
-        tracing::info!(socket = %raw, "using the panel's privileged Wayland socket");
+        tracing::debug!(socket = %raw, "using the panel's privileged Wayland socket");
         return;
     }
 

@@ -419,7 +419,7 @@ impl<S: OrderStore> Core<S> {
             }
         };
 
-        tracing::info!(items = link.initial.len(), "state rebuilding");
+        tracing::debug!(items = link.initial.len(), "state rebuilding");
         let mut live = Vec::with_capacity(link.initial.len());
         for entry in &link.initial {
             if let Some(address) = self.introduce(connection, entry).await {
@@ -439,7 +439,7 @@ impl<S: OrderStore> Core<S> {
         }
 
         self.watcher = WatcherState::Connected;
-        tracing::info!(items = self.registry.len(), "registry rebuilt");
+        tracing::debug!(items = self.registry.len(), "registry rebuilt");
         self.publish();
         Some(link)
     }
@@ -1029,7 +1029,7 @@ impl<S: OrderStore> Core<S> {
             return;
         };
         open.watch.abort();
-        tracing::info!(item = %open.address, reason, "menu invalidated");
+        tracing::debug!(item = %open.address, reason, "menu invalidated");
         let _ = self.menus.send(None);
     }
 
