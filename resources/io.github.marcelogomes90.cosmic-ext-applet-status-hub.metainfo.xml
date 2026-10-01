@@ -366,6 +366,16 @@
     <keyword xml:lang="zh-CN">面板</keyword>
   </keywords>
   <releases>
+    <release type="stable" version="1.5.13" date="2026-10-01">
+      <description>
+        <p>This patch finds icons the icon theme in use does not carry, reaches those snap packages publish, and gives the Save button the hover it was missing.</p>
+        <ul>
+          <li>Looks an application's icon up in every icon theme installed on the system before falling back to guessing from the item's name, so an application whose artwork only ships in a theme you are not currently wearing keeps its own icon instead of a generic one. The themes COSMIC ships come first and the rest follow by name, so two machines resolve the same application to the same artwork.</li>
+          <li>Reads the icons snap packages publish, through read-only access to the three trees snapd uses.</li>
+          <li>Gives the Save button in settings the hover and press shading the settings button it replaces has, and holds it to the same box. Its padding no longer follows the interface density, which at the spacious setting had been pushing the label out of the header.</li>
+        </ul>
+      </description>
+    </release>
     <release type="stable" version="1.5.12" date="2026-09-22">
       <description>
         <p>This patch quiets the system log and finishes the popup header's buttons.</p>
