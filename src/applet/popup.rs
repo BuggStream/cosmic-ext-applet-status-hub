@@ -33,6 +33,9 @@ pub fn header_icon_padding() -> u16 {
     HEADER_CONTROL.saturating_sub(HEADER_ICON) / 2
 }
 
+pub const LINK_INSET: [u16; 2] = [4, HEADER_CONTROL.saturating_sub(HEADER_ICON) / 2];
+pub const LINK_SPACING: u16 = 4;
+
 pub fn section_spacing() -> u16 {
     cosmic::theme::spacing().space_s
 }

@@ -550,11 +550,12 @@ impl StatusHub {
 
         let action: Element<'_, Message> = if showing_settings {
             cosmic::widget::button::icon(cosmic::widget::icon::from_name("object-select-symbolic"))
-                .class(cosmic::widget::button::ButtonClass::Link)
+                .class(cosmic::widget::button::ButtonClass::Text)
                 .extra_small()
                 .label(fl!("save"))
-                .padding(0)
-                .spacing(4)
+                .padding(popup::LINK_INSET)
+                .spacing(popup::LINK_SPACING)
+                .height(Length::Fixed(control))
                 .on_press(Message::SaveSettings)
                 .into()
         } else {
