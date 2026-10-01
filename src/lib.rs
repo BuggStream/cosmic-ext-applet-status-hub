@@ -14,16 +14,26 @@ pub const APP_ID: &str = "io.github.marcelogomes90.cosmic-ext-applet-status-hub"
 
 pub fn extend_data_dirs() {
     let current = std::env::var_os("XDG_DATA_DIRS").unwrap_or_default();
-    let Some(extended) = data_dirs_with(&current, export_roots()) else {
+    let Some(extended) = data_dirs_with(&current, extra_roots()) else {
         return;
     };
     unsafe { std::env::set_var("XDG_DATA_DIRS", extended) };
+}
+
+fn extra_roots() -> impl Iterator<Item = PathBuf> {
+    export_roots().chain(snap_root())
 }
 
 fn export_roots() -> impl Iterator<Item = PathBuf> {
     crate::flatpak::installations()
         .map(|install| install.join("exports/share"))
         .filter(|root| root.is_dir())
+}
+
+fn snap_root() -> impl Iterator<Item = PathBuf> {
+    const SNAP_DESKTOP: &str = "/var/lib/snapd/desktop";
+
+    std::iter::once(PathBuf::from(SNAP_DESKTOP)).filter(|root| root.is_dir())
 }
 
 fn data_dirs_with(current: &OsStr, roots: impl Iterator<Item = PathBuf>) -> Option<OsString> {

@@ -201,7 +201,10 @@ The lookup runs in a fixed order (`applet/icons/mod.rs`):
 3. the absolute path the item published, if the value is a path and the file exists;
 4. the raw pixmap, ARGB converted to RGBA, choosing the smallest frame at least as large as the
    2× logical target and otherwise the largest available, comparing the longest side;
-5. `application-default`, then `application-x-executable`.
+5. the name in any other icon theme the user has installed, accepted only if the file really lives
+   in that theme's own directory;
+6. the item's `Id` looked up as an icon name, for an application whose artwork is named after it;
+7. `application-default`, then `application-x-executable`.
 
 A relative name and an absolute path are mutually exclusive readings of `IconName`, so step 3 is a
 separate branch rather than a candidate that can displace a themed name. Completing the global theme
@@ -209,8 +212,19 @@ lookup before consulting `IconThemePath` is a deliberate trade: consistency with
 chose wins, at the cost of a theme carrying a shorter fallback name beating the exact file the
 application shipped.
 
+Step 5 exists because an application installed outside a sandbox often keeps its tray artwork
+somewhere only itself can reach — Steam writes `steam_tray_mono` into `$HOME` at runtime and links
+to it from `hicolor`, so from inside the Flatpak that link dangles and steps 1 to 4 all come up
+empty. Icon themes routinely ship artwork for exactly these applications, and a theme the user
+installed is a better answer than a generic placeholder even when it is not the theme they are
+wearing. The hit must come from that theme's own directory: `cosmic-freedesktop-icons` walks
+`Cosmic`, `hicolor`, `gnome` and `Yaru` for *every* lookup regardless of the theme asked for, so
+without that filter the first theme tried would answer for all of them and the rest would never be
+consulted — and it would answer with what step 1 already rejected. Those four are skipped outright,
+along with the theme in use.
+
 Many applications publish no icon name at all, so step 4 is a common outcome rather than a last
-resort. Only step 5 is flagged as a fallback, and that flag drives a retry ladder stretching to
+resort. Only step 7 is flagged as a fallback, and that flag drives a retry ladder stretching to
 about a minute, for applications that register an item before publishing its icon. The cache is
 keyed by `(address, generation, kind, size)`, so a fresh resolve invalidates an item's icon with no
 explicit invalidation anywhere; a change of icon theme, panel colours, or the user's colouring
@@ -375,6 +389,19 @@ it, which is what keeps the free host themes in the search path. Each entry ther
 `<installation>/app/<id>/current/active/export`, so the app tree is granted alongside them or every
 link dangles. `~/.icons` is granted because that legacy path is a real search root nothing else
 covers.
+
+The three snapd grants are the same idea for the other packaging format, and they need no
+translation because a granted path keeps its own name inside the sandbox. `/snap` and
+`/var/lib/snapd/snap` are the same tree under the two names distributions give it, so a
+`/snap/<name>/<rev>/...` path a snap publishes resolves wherever it is mounted.
+`/var/lib/snapd/desktop` is snapd's answer to a Flatpak installation's `exports/share`, so
+`snap_root` appends it to `XDG_DATA_DIRS` beside the export trees. All three are absent on a host
+that does not use snap, and Flatpak simply skips a path that is not there.
+
+Nothing reaches into the host's own `/usr`. It would take `host-os`, and the artwork that would
+unlock is rarely there: an application the distribution installed usually exports its icons into a
+theme already on `XDG_DATA_DIRS`, and one that keeps them to itself keeps them in `$HOME`, which
+`host-os` does not carry either. Step 5 of the lookup covers that case without a grant.
 
 `~/.config/cosmic` is the one read-write grant, and it has to be. `cosmic_config::Config::new`
 calls `create_dir_all` on `<id>/v<n>` before it reads a single key, so under a read-only view a

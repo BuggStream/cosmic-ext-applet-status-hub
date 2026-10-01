@@ -15,6 +15,10 @@ mod testing;
 
 use self::paint::recolour;
 
+const ALWAYS_SEARCHED: [&str; 4] = ["Cosmic", "hicolor", "gnome", "Yaru"];
+
+const STOCK_THEMES: [&str; 2] = ["Pop", "breeze"];
+
 const FALLBACKS: [&str; 2] = ["application-default", "application-x-executable"];
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -191,8 +195,16 @@ enum Origin {
 
 fn build(options: &IconOptions, item_id: &str, size: u16, theme: &ThemeContext) -> Built {
     build_artwork(options, size, theme, IconKind::Primary)
+        .or_else(|| build_from_any_theme(options.name.as_deref(), size, theme))
         .or_else(|| fallback_to_id(item_id, options.name.as_deref(), size, theme))
         .unwrap_or_else(|| fallback(size, theme))
+}
+
+fn build_from_any_theme(name: Option<&str>, size: u16, theme: &ThemeContext) -> Option<Built> {
+    let name = name?;
+    let path = lookup_in_any_theme(name, size, &theme.icon_theme)?;
+    let source = format!("any theme {name} -> {}", path.display());
+    from_file(path, name, source, size, theme, IconKind::Primary)
 }
 
 fn fallback_to_id(
@@ -413,6 +425,87 @@ fn lookup(name: &str, size: u16) -> Option<PathBuf> {
         .or_else(|| named(name).prefer_svg(false).path())
 }
 
+fn lookup_in_any_theme(name: &str, size: u16, active: &str) -> Option<PathBuf> {
+    installed_themes(&theme_roots(), active)
+        .into_iter()
+        .find_map(|theme| search_theme(name, &theme, size))
+}
+
+fn search_theme(name: &str, theme: &InstalledTheme, size: u16) -> Option<PathBuf> {
+    let find = |prefer_svg: bool| {
+        let mut lookup = cosmic_freedesktop_icons::lookup(name)
+            .with_theme(&theme.name)
+            .with_size(size);
+        if prefer_svg {
+            lookup = lookup.force_svg();
+        }
+        lookup.find().filter(|path| path.starts_with(&theme.dir))
+    };
+    find(true).or_else(|| find(false))
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct InstalledTheme {
+    dir: PathBuf,
+    name: String,
+}
+
+fn theme_roots() -> Vec<PathBuf> {
+    let data_dirs = std::env::var_os("XDG_DATA_DIRS").unwrap_or_default();
+    let mut roots: Vec<PathBuf> = std::env::split_paths(&data_dirs)
+        .map(|dir| dir.join("icons"))
+        .collect();
+
+    let home = std::env::home_dir();
+    let data_home = std::env::var_os("XDG_DATA_HOME")
+        .map(PathBuf::from)
+        .or_else(|| home.as_ref().map(|home| home.join(".local/share")));
+
+    roots.extend(data_home.map(|data_home| data_home.join("icons")));
+    roots.extend(home.map(|home| home.join(".icons")));
+    roots
+}
+
+fn installed_themes(roots: &[PathBuf], active: &str) -> Vec<InstalledTheme> {
+    let mut themes: Vec<InstalledTheme> = Vec::new();
+
+    for root in roots {
+        let Ok(entries) = std::fs::read_dir(root) else {
+            continue;
+        };
+        for entry in entries.filter_map(Result::ok) {
+            let dir = entry.path();
+            if !dir.join("index.theme").is_file() {
+                continue;
+            }
+            let Some(name) = entry.file_name().to_str().map(str::to_owned) else {
+                continue;
+            };
+            if name == active
+                || ALWAYS_SEARCHED.contains(&name.as_str())
+                || themes.iter().any(|theme| theme.name == name)
+            {
+                continue;
+            }
+            themes.push(InstalledTheme { dir, name });
+        }
+    }
+
+    themes.sort_by(|left, right| {
+        stock_rank(left)
+            .cmp(&stock_rank(right))
+            .then_with(|| left.name.cmp(&right.name))
+    });
+    themes
+}
+
+fn stock_rank(theme: &InstalledTheme) -> usize {
+    STOCK_THEMES
+        .iter()
+        .position(|stock| *stock == theme.name)
+        .unwrap_or(STOCK_THEMES.len())
+}
+
 fn named(name: &str) -> Named {
     icon::from_name(name.to_owned())
 }
@@ -444,6 +537,44 @@ mod tests {
     use crate::applet::icons::testing::*;
     use crate::core::model::Pixmap;
     use crate::core::testing::item;
+
+    #[test]
+    fn a_theme_the_user_is_not_wearing_is_still_a_last_resort() {
+        let root = test_root("installed-themes");
+        for name in [
+            "Tela",
+            "Newaita-reborn",
+            "hicolor",
+            "Cosmic",
+            "Adwaita",
+            "Pop",
+            "breeze",
+        ] {
+            let theme = root.join(name);
+            std::fs::create_dir_all(&theme).unwrap();
+            std::fs::write(theme.join("index.theme"), "[Icon Theme]\n").unwrap();
+        }
+        std::fs::create_dir_all(root.join("not-a-theme")).unwrap();
+
+        let found: Vec<String> = installed_themes(std::slice::from_ref(&root), "Adwaita")
+            .into_iter()
+            .map(|theme| theme.name)
+            .collect();
+
+        assert_eq!(
+            found,
+            vec![
+                "Pop".to_owned(),
+                "breeze".to_owned(),
+                "Newaita-reborn".to_owned(),
+                "Tela".to_owned(),
+            ],
+            "what COSMIC ships comes first, then the rest by name; the theme in use and the ones \
+             every lookup already walks are not worth revisiting, and a directory without an \
+             index is not a theme"
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
 
     #[test]
     fn png_and_pixmap_preparation_is_independent_of_the_paint_decision() {
