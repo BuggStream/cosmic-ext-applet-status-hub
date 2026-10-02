@@ -199,14 +199,16 @@ mod tests {
                 Path::new("/app/extra/missing"),
                 std::slice::from_ref(&install_root)
             )
-            .is_empty()
+            .is_empty(),
+            "no installed application ships this tail"
         );
         assert!(
             payload_roots_in(
                 Path::new("/home/someone/.var/app/org.example.Absent/data"),
                 std::slice::from_ref(&install_root),
             )
-            .is_empty()
+            .is_empty(),
+            "the application this data directory names is not installed"
         );
         assert!(
             payload_roots_in(
@@ -253,7 +255,8 @@ mod tests {
                 Path::new("/applications/icons"),
                 std::slice::from_ref(&install_root)
             )
-            .is_empty()
+            .is_empty(),
+            "a directory merely starting with the sandbox prefix is not a sandbox path"
         );
         std::fs::remove_dir_all(install_root).unwrap();
     }

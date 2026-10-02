@@ -167,7 +167,7 @@ mod tests {
         assert!(!appearance.colour_icons());
 
         let (_, unchanged) = appearance.update_keys(config, &[COLOUR_ICONS_KEY]);
-        assert!(unchanged.is_empty());
+        assert!(unchanged.is_empty(), "an identical reload is not a change");
         let _ = std::fs::remove_dir_all(path);
     }
 }

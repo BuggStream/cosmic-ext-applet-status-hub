@@ -269,7 +269,10 @@ mod tests {
     fn an_unavailable_config_simply_has_no_pins() {
         let store = PinStore { config: None };
 
-        assert!(store.load().keys().is_empty());
+        assert!(
+            store.load().keys().is_empty(),
+            "a config the session never created cannot be holding pins"
+        );
         store.save(&Pins::from_keys([key("steam")]));
     }
 

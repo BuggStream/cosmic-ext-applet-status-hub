@@ -198,6 +198,9 @@ mod tests {
         item.title = String::new();
         item.key = ItemKey::new("", 0);
 
-        assert!(hints(&item).is_empty());
+        assert!(
+            hints(&item).is_empty(),
+            "an item with no id, title or tooltip has nothing to be recognised by"
+        );
     }
 }
